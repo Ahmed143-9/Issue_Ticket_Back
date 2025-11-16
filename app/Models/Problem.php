@@ -1,5 +1,4 @@
 <?php
-// app/Models/Problem.php
 
 namespace App\Models;
 
@@ -11,31 +10,22 @@ class Problem extends Model
     use HasFactory;
 
     protected $fillable = [
-        'title',
-        'description',
         'department',
         'priority',
-        'status',
-        'reported_by',
+        'status', 
+        'statement',
+        'created_by',
         'assigned_to',
-        'first_face_assigned_to',
-        'assigned_at',
-        'resolved_at',
-        'resolution_notes'
+        'transfer_history',
+        'resolved_at'
     ];
 
     protected $casts = [
-        'assigned_at' => 'datetime',
+        'transfer_history' => 'array',
         'resolved_at' => 'datetime'
     ];
 
-    public function reporter()
-    {
-        return $this->belongsTo(User::class, 'reported_by');
-    }
-
-    public function assignee()
-    {
-        return $this->belongsTo(User::class, 'assigned_to');
-    }
+    protected $attributes = [
+        'status' => 'pending'
+    ];
 }
