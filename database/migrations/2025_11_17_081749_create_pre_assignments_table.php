@@ -1,5 +1,5 @@
 <?php
-// database/migrations/2025_11_12_051200_create_first_face_assignments_table.php
+// database/migrations/2024_01_01_000001_create_pre_assignments_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -9,21 +9,20 @@ return new class extends Migration
 {
     public function up()
     {
-        Schema::create('first_face_assignments', function (Blueprint $table) {
+        Schema::create('pre_assignments', function (Blueprint $table) {
             $table->id();
             $table->string('department');
-            $table->string('user_name'); // ✅ Store username directly
-            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             
-            // ✅ One active assignment per department
+            // One pre-assignment per department
             $table->unique(['department', 'is_active']);
         });
     }
 
     public function down()
     {
-        Schema::dropIfExists('first_face_assignments');
+        Schema::dropIfExists('pre_assignments');
     }
 };

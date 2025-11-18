@@ -8,9 +8,6 @@ use Illuminate\Http\JsonResponse;
 
 class ProblemController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(): JsonResponse
     {
         try {
@@ -29,50 +26,59 @@ class ProblemController extends Controller
         }
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request): JsonResponse
-    {
-        try {
-            $validated = $request->validate([
-                'department' => 'required|string|max:255',
-                'priority' => 'required|in:High,Medium,Low',
-                'statement' => 'required|string',
-                'created_by' => 'required|string|max:255',
-            ]);
+public function store(Request $request): JsonResponse
+{
+    try {
+        \Log::info('Problem store method called', $request->all());
 
-            $problem = Problem::create([
-                'department' => $validated['department'],
-                'priority' => $validated['priority'],
-                'statement' => $validated['statement'],
-                'created_by' => $validated['created_by'],
-                'status' => 'pending',
-            ]);
+        $validated = $request->validate([
+            'department' => 'required|string|max:255',
+            'service' => 'required|string|max:255',
+            'priority' => 'required|in:High,Medium,Low',
+            'statement' => 'required|string',
+            'client' => 'nullable|string|max:255',
+            'images' => 'nullable|array', // Allow array
+            'images.*' => 'nullable|string', // Each item in array should be string
+            'created_by' => 'required|string|max:255',
+        ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Problem created successfully',
-                'problem' => $problem
-            ], 201);
-            
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Failed to create problem: ' . $e->getMessage()
-            ], 500);
-        }
+        \Log::info('Validation passed', $validated);
+
+        $problem = Problem::create([
+            'department' => $validated['department'],
+            'service' => $validated['service'],
+            'priority' => $validated['priority'],
+            'statement' => $validated['statement'],
+            'client' => $validated['client'] ?? null,
+            'images' => $validated['images'] ?? [], // Store as array
+            'created_by' => $validated['created_by'],
+            'status' => 'pending',
+        ]);
+
+        \Log::info('Problem created successfully', ['id' => $problem->id]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Problem created successfully',
+            'problem' => $problem
+        ], 201);
+        
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        \Log::error('Validation failed', ['errors' => $e->errors()]);
+        return response()->json([
+            'success' => false,
+            'error' => 'Validation failed',
+            'errors' => $e->errors()
+        ], 422);
+    } catch (\Exception $e) {
+        \Log::error('Problem creation failed: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'error' => 'Failed to create problem: ' . $e->getMessage()
+        ], 500);
     }
+}
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id): JsonResponse
     {
         try {
@@ -97,9 +103,6 @@ class ProblemController extends Controller
         }
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id): JsonResponse
     {
         try {
@@ -137,14 +140,11 @@ class ProblemController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to update problem: ' . e->getMessage()
+                'error' => 'Failed to update problem: ' . $e->getMessage()
             ], 500);
         }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id): JsonResponse
     {
         try {
@@ -167,6 +167,43 @@ class ProblemController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to delete problem: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Additional methods...
+    public function getByStatus($status): JsonResponse
+    {
+        try {
+            $problems = Problem::where('status', $status)->orderBy('created_at', 'desc')->get();
+            
+            return response()->json([
+                'success' => true,
+                'problems' => $problems,
+                'count' => $problems->count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to fetch problems by status: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getByDepartment($department): JsonResponse
+    {
+        try {
+            $problems = Problem::where('department', $department)->orderBy('created_at', 'desc')->get();
+            
+            return response()->json([
+                'success' => true,
+                'problems' => $problems,
+                'count' => $problems->count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to fetch problems by department: ' . $e->getMessage()
             ], 500);
         }
     }

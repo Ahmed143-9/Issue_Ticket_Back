@@ -11,7 +11,7 @@ class FirstFaceAssignment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', // ✅ user_id add করুন
+        'user_id',
         'department',
         'type',
         'assigned_by',
@@ -24,11 +24,13 @@ class FirstFaceAssignment extends Model
         'is_active' => 'boolean'
     ];
 
+    // Relationship with assigned user
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id'); // ✅ user_id ব্যবহার করুন
+        return $this->belongsTo(User::class, 'user_id');
     }
 
+    // Relationship with user who made the assignment
     public function assigner()
     {
         return $this->belongsTo(User::class, 'assigned_by');

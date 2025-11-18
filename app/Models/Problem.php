@@ -11,9 +11,12 @@ class Problem extends Model
 
     protected $fillable = [
         'department',
+        'service',
         'priority',
         'status', 
         'statement',
+        'client',
+        'images', // 🔥 ADD THIS
         'created_by',
         'assigned_to',
         'transfer_history',
@@ -21,6 +24,7 @@ class Problem extends Model
     ];
 
     protected $casts = [
+        'images' => 'array', // 🔥 ADD THIS - automatically convert to/from JSON
         'transfer_history' => 'array',
         'resolved_at' => 'datetime'
     ];
