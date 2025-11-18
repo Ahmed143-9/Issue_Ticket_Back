@@ -6,7 +6,6 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
 
 class AdminUserSeeder extends Seeder
 {
@@ -25,7 +24,7 @@ class AdminUserSeeder extends Seeder
             ]);
             $this->command->info('✅ Default admin user created!');
         } else {
-            // Admin already exists, password update করুন
+            // Admin already exists, update password
             $admin = User::where('username', 'Admin')->first();
             $admin->update([
                 'password' => Hash::make('Admin@123'),

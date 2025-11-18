@@ -1,26 +1,48 @@
 <?php
+// app/Http/Controllers/AuthController.php
 
 namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
-    public function login(Request $request): JsonResponse
+    public function login(Request $request)
     {
         try {
-            $request->validate([
-                'username' => 'required|string',
-                'password' => 'required|string',
+            \Log::info('Login attempt:', $request->all());
+
+            // ✅ SIMPLE VALIDATION - কোন strict validation নেই
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email',
+                'password' => 'required'
             ]);
 
-            $user = User::where('username', $request->username)->first();
+            if ($validator->fails()) {
+                \Log::warning('Login validation failed', $validator->errors()->toArray());
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Validation failed: ' . implode(', ', $validator->errors()->all())
+                ], 422);
+            }
 
-            if (!$user || !Hash::check($request->password, $user->password)) {
+            // Find user by email
+            $user = User::where('email', $request->email)->first();
+
+            if (!$user) {
+                \Log::warning('User not found', ['email' => $request->email]);
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Invalid credentials'
+                ], 401);
+            }
+
+            // Check password
+            if (!Hash::check($request->password, $user->password)) {
+                \Log::warning('Password mismatch', ['email' => $request->email]);
                 return response()->json([
                     'success' => false,
                     'error' => 'Invalid credentials'
@@ -29,20 +51,17 @@ class AuthController extends Controller
 
             // Check if user is active
             if ($user->status !== 'active') {
+                \Log::warning('User inactive', ['email' => $request->email]);
                 return response()->json([
                     'success' => false,
-                    'error' => 'Account is inactive'
+                    'error' => 'Your account is inactive. Please contact administrator.'
                 ], 401);
             }
 
-            // 🔥 FIX: Check if Sanctum is available
-            $token = null;
-            if (method_exists($user, 'createToken')) {
-                $token = $user->createToken('auth-token')->plainTextToken;
-            } else {
-                // Fallback: Generate simple token
-                $token = 'token_' . $user->id . '_' . time();
-            }
+            // Create token
+            $token = $user->createToken('auth-token')->plainTextToken;
+
+            \Log::info('Login successful', ['user_id' => $user->id, 'email' => $user->email]);
 
             return response()->json([
                 'success' => true,
@@ -50,20 +69,15 @@ class AuthController extends Controller
                 'user' => [
                     'id' => $user->id,
                     'name' => $user->name,
-                    'username' => $user->username,
                     'email' => $user->email,
+                    'username' => $user->username,
                     'role' => $user->role,
                     'department' => $user->department,
                     'status' => $user->status
-                ]
+                ],
+                'message' => 'Login successful!'
             ]);
 
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
         } catch (\Exception $e) {
             \Log::error('Login error: ' . $e->getMessage());
             return response()->json([
@@ -73,20 +87,16 @@ class AuthController extends Controller
         }
     }
 
-    public function logout(Request $request): JsonResponse
+    public function logout(Request $request)
     {
         try {
-            // 🔥 FIX: Check if Sanctum is available
-            if (method_exists($request->user(), 'currentAccessToken')) {
-                $request->user()->currentAccessToken()->delete();
-            }
-
+            $request->user()->currentAccessToken()->delete();
+            
             return response()->json([
                 'success' => true,
-                'message' => 'Logged out successfully'
+                'message' => 'Logout successful!'
             ]);
         } catch (\Exception $e) {
-            \Log::error('Logout error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'error' => 'Logout failed'
@@ -94,11 +104,28 @@ class AuthController extends Controller
         }
     }
 
-    public function getUser(Request $request): JsonResponse
+    public function getUser(Request $request)
     {
-        return response()->json([
-            'success' => true,
-            'user' => $request->user()
-        ]);
+        try {
+            $user = $request->user();
+            
+            return response()->json([
+                'success' => true,
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'username' => $user->username,
+                    'role' => $user->role,
+                    'department' => $user->department,
+                    'status' => $user->status
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to get user data'
+            ], 500);
+        }
     }
 }

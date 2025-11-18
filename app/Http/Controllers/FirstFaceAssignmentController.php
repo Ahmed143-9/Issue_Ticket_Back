@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class FirstFaceAssignmentController extends Controller
 {
@@ -16,7 +17,7 @@ class FirstFaceAssignmentController extends Controller
         $this->middleware('auth:sanctum');
     }
 
-    // Get all first face assignments
+    // Get all first face assignments - UPDATED VERSION
     public function index(): JsonResponse
     {
         try {
@@ -30,31 +31,41 @@ class FirstFaceAssignmentController extends Controller
                 ], 403);
             }
 
-            $assignments = FirstFaceAssignment::with(['user', 'assigner'])
-                ->where('is_active', true)
+            // Get only active assignments with user data
+            $assignments = FirstFaceAssignment::where('is_active', true)
                 ->orderBy('created_at', 'desc')
                 ->get()
                 ->map(function ($assignment) {
+                    $user = User::find($assignment->user_id);
+                    $assigner = User::find($assignment->assigned_by);
+                    
                     return [
                         'id' => $assignment->id,
                         'user_id' => $assignment->user_id,
-                        'userName' => $assignment->user ? $assignment->user->name : 'Unknown User',
+                        'user' => $user ? [
+                            'id' => $user->id,
+                            'name' => $user->name,
+                            'email' => $user->email,
+                            'role' => $user->role,
+                            'department' => $user->department
+                        ] : null,
                         'department' => $assignment->department,
                         'type' => $assignment->type,
-                        'assigned_by' => $assignment->assigner ? $assignment->assigner->name : 'Unknown',
-                        'assignedAt' => $assignment->assigned_at ? $assignment->assigned_at->toISOString() : null,
-                        'is_active' => $assignment->is_active
+                        'assigned_by' => $assigner ? $assigner->name : 'Unknown',
+                        'is_active' => $assignment->is_active,
+                        'created_at' => $assignment->created_at->toISOString()
                     ];
                 });
 
             return response()->json([
                 'success' => true,
-                'data' => $assignments,
+                'firstFaceAssignments' => $assignments, // ✅ Changed from 'data' to 'firstFaceAssignments'
+                'count' => $assignments->count(),
                 'message' => 'First face assignments retrieved successfully'
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('First Face Assignment Load Error: ' . $e->getMessage());
+            Log::error('First Face Assignment Load Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to load first face assignments: ' . $e->getMessage()
@@ -62,7 +73,7 @@ class FirstFaceAssignmentController extends Controller
         }
     }
 
-    // Create new first face assignment
+    // Create new first face assignment - UPDATED VERSION
     public function store(Request $request): JsonResponse
     {
         try {
@@ -75,8 +86,9 @@ class FirstFaceAssignmentController extends Controller
                 ], 403);
             }
 
+            // Validate request data
             $validator = Validator::make($request->all(), [
-                'user_id' => 'required|exists:users,id',
+                'user_id' => 'required|integer|exists:users,id',
                 'department' => 'required|string|in:all,IT & Innovation,Business,Accounts',
                 'type' => 'required|in:all,specific'
             ]);
@@ -89,47 +101,67 @@ class FirstFaceAssignmentController extends Controller
                 ], 422);
             }
 
-            // Deactivate existing assignments based on type
-            if ($request->department === 'all') {
-                // Deactivate all "all" type assignments
-                FirstFaceAssignment::where('department', 'all')
-                    ->where('is_active', true)
-                    ->update(['is_active' => false]);
-            } else {
-                // Deactivate specific department assignments
-                FirstFaceAssignment::where('department', $request->department)
-                    ->where('is_active', true)
-                    ->update(['is_active' => false]);
+            // Check if user exists and is active
+            $user = User::where('id', $request->user_id)
+                       ->where('status', 'active')
+                       ->first();
+                       
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Selected user not found or inactive'
+                ], 404);
             }
 
+            // Check for existing active assignment for this department
+            $existingAssignment = FirstFaceAssignment::where('department', $request->department)
+                ->where('is_active', true)
+                ->first();
+
+            if ($existingAssignment) {
+                $existingUser = User::find($existingAssignment->user_id);
+                return response()->json([
+                    'success' => false,
+                    'error' => "First Face already assigned to {$existingUser->name} for {$request->department}"
+                ], 400);
+            }
+
+            // If assigning for "all" departments, deactivate all other assignments
+            if ($request->department === 'all') {
+                FirstFaceAssignment::where('is_active', true)->update(['is_active' => false]);
+            }
+
+            // Create new assignment
             $assignment = FirstFaceAssignment::create([
                 'user_id' => $request->user_id,
                 'department' => $request->department,
                 'type' => $request->type,
                 'assigned_by' => $authUser->id,
-                'assigned_at' => now(),
                 'is_active' => true
             ]);
 
-            // Load relationships
-            $assignment->load(['user', 'assigner']);
+            Log::info('First Face assigned successfully', [
+                'assignment_id' => $assignment->id,
+                'user_id' => $assignment->user_id,
+                'department' => $assignment->department,
+                'assigned_by' => $authUser->id
+            ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'First Face assigned successfully!',
-                'data' => [
+                'assignment' => [ // ✅ Changed from 'data' to 'assignment'
                     'id' => $assignment->id,
                     'user_id' => $assignment->user_id,
-                    'userName' => $assignment->user->name,
+                    'userName' => $user->name,
                     'department' => $assignment->department,
                     'type' => $assignment->type,
-                    'assigned_by' => $assignment->assigner->name,
-                    'assignedAt' => $assignment->assigned_at->toISOString()
+                    'assigned_by' => $authUser->name
                 ]
             ], 201);
 
         } catch (\Exception $e) {
-            \Log::error('First Face Assignment Error: ' . $e->getMessage());
+            Log::error('First Face Assignment Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to assign First Face: ' . $e->getMessage()
@@ -137,7 +169,7 @@ class FirstFaceAssignmentController extends Controller
         }
     }
 
-    // Update first face assignment
+    // Update first face assignment - UPDATED VERSION
     public function update(Request $request, $id): JsonResponse
     {
         try {
@@ -179,11 +211,11 @@ class FirstFaceAssignmentController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'First Face assignment updated successfully!',
-                'data' => $assignment
+                'assignment' => $assignment // ✅ Changed from 'data' to 'assignment'
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('First Face Assignment Update Error: ' . $e->getMessage());
+            Log::error('First Face Assignment Update Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to update assignment: ' . $e->getMessage()
@@ -191,7 +223,7 @@ class FirstFaceAssignmentController extends Controller
         }
     }
 
-    // Delete first face assignment
+    // Delete first face assignment - UPDATED VERSION
     public function destroy($id): JsonResponse
     {
         try {
@@ -215,13 +247,18 @@ class FirstFaceAssignmentController extends Controller
 
             $assignment->delete();
 
+            Log::info('First Face assignment deleted', [
+                'assignment_id' => $id,
+                'deleted_by' => $authUser->id
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'First Face assignment deleted successfully!'
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('First Face Assignment Delete Error: ' . $e->getMessage());
+            Log::error('First Face Assignment Delete Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to delete assignment: ' . $e->getMessage()

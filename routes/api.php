@@ -1,59 +1,111 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProblemController;
 use App\Http\Controllers\FirstFaceAssignmentController;
-use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-*/
-
-// Public routes (No authentication required)
+// Public routes
 Route::post('/login', [AuthController::class, 'login']);
 
-// Protected routes (Authentication required)
+// ✅ TEMPORARY DEBUG ROUTES - Authentication ছাড়া
+Route::get('/test', function () {
+    return response()->json([
+        'success' => true,
+        'message' => 'API test endpoint is working!',
+        'timestamp' => now()
+    ]);
+});
+
+Route::get('/test-users', function () {
+    try {
+        $users = \App\Models\User::all();
+        return response()->json([
+            'success' => true,
+            'count' => $users->count(),
+            'users' => $users
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});
+
+Route::get('/test-first-face', function () {
+    try {
+        $assignments = \App\Models\FirstFaceAssignment::all();
+        return response()->json([
+            'success' => true,
+            'count' => $assignments->count(),
+            'assignments' => $assignments
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
+// ✅ TEMPORARILY REMOVE AUTH MIDDLEWARE FOR ALL ROUTES
+// User Management Routes
+Route::prefix('users')->group(function () {
+    Route::get('/', [UserController::class, 'index']);
+    Route::post('/', [UserController::class, 'store']);
+    Route::put('/{id}', [UserController::class, 'update']);
+    Route::delete('/{id}', [UserController::class, 'destroy']);
+    Route::patch('/{id}/toggle-status', [UserController::class, 'toggleStatus']);
+    Route::get('/active', [UserController::class, 'getActiveUsers']);
+});
+
+// Problem Routes
+Route::apiResource('problems', ProblemController::class);
+
+// First Face Assignment Routes - URL FIXED
+Route::prefix('first-face')->group(function () {
+    Route::get('/', [FirstFaceAssignmentController::class, 'index']);
+    Route::post('/', [FirstFaceAssignmentController::class, 'store']);
+    Route::put('/{id}', [FirstFaceAssignmentController::class, 'update']);
+    Route::delete('/{id}', [FirstFaceAssignmentController::class, 'destroy']);
+});
+
+// Active Users route (duplicate remove)
+// Route::get('/active-users', [UserController::class, 'getActiveUsers']); // Remove this line
+
+// Auth routes (without middleware temporarily)
+Route::post('/logout', [AuthController::class, 'logout']);
+Route::get('/user', [AuthController::class, 'getUser']);
+
+// Protected routes (COMMENT OUT TEMPORARILY FOR TESTING)
+/*
 Route::middleware('auth:sanctum')->group(function () {
-    
     // Auth routes
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'getUser']);
 
-    // User Management Routes (Admin only)
+    // User Management Routes
     Route::prefix('users')->group(function () {
-        Route::get('/', [UserController::class, 'index']); // Admin & Team Leader
-        Route::post('/', [UserController::class, 'store']); // Admin only
-        Route::put('/{id}', [UserController::class, 'update']); // Admin only
-        Route::delete('/{id}', [UserController::class, 'destroy']); // Admin only
-        Route::patch('/{id}/toggle-status', [UserController::class, 'toggleStatus']); // Admin only
-        Route::get('/active', [UserController::class, 'getActiveUsers']); // All authenticated users
+        Route::get('/', [UserController::class, 'index']);
+        Route::post('/', [UserController::class, 'store']);
+        Route::put('/{id}', [UserController::class, 'update']);
+        Route::delete('/{id}', [UserController::class, 'destroy']);
+        Route::patch('/{id}/toggle-status', [UserController::class, 'toggleStatus']);
+        Route::get('/active', [UserController::class, 'getActiveUsers']);
     });
 
-    // Problem Routes (All authenticated users with permissions)
-    Route::prefix('problems')->group(function () {
-        Route::get('/', [ProblemController::class, 'index']); // All authenticated users
-        Route::post('/', [ProblemController::class, 'store']); // All authenticated users
-        Route::get('/{id}', [ProblemController::class, 'show']); // All authenticated users
-        Route::put('/{id}', [ProblemController::class, 'update']); // Admin, Team Leader, or assigned user
-        Route::delete('/{id}', [ProblemController::class, 'destroy']); // Admin only
-        Route::get('/status/{status}', [ProblemController::class, 'getByStatus']); // All authenticated users
-        Route::get('/department/{department}', [ProblemController::class, 'getByDepartment']); // All authenticated users
-        Route::get('/stats/unassigned', [ProblemController::class, 'getUnassignedProblemsStats']); // Admin & Team Leader
-        Route::patch('/{id}/assign', [ProblemController::class, 'assignProblem']); // Admin & Team Leader
-        Route::patch('/{id}/status', [ProblemController::class, 'updateStatus']); // Admin, Team Leader, or assigned user
-    });
+    // Problem Routes
+    Route::apiResource('problems', ProblemController::class);
 
-    // First Face Assignment Routes (Admin only)
-    Route::prefix('first-face-assignments')->group(function () {
-        Route::get('/', [FirstFaceAssignmentController::class, 'index']); // Admin & Team Leader
-        Route::post('/', [FirstFaceAssignmentController::class, 'store']); // Admin only
-        Route::put('/{id}', [FirstFaceAssignmentController::class, 'update']); // Admin only
-        Route::delete('/{id}', [FirstFaceAssignmentController::class, 'destroy']); // Admin only
+    // First Face Assignment Routes
+    Route::prefix('first-face')->group(function () {
+        Route::get('/', [FirstFaceAssignmentController::class, 'index']);
+        Route::post('/', [FirstFaceAssignmentController::class, 'store']);
+        Route::put('/{id}', [FirstFaceAssignmentController::class, 'update']);
+        Route::delete('/{id}', [FirstFaceAssignmentController::class, 'destroy']);
     });
-
-    // Active Users for dropdowns (All authenticated users)
-    Route::get('/active-users', [UserController::class, 'getActiveUsers']);
 });
+*/
