@@ -6,16 +6,9 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
 {
-    // ✅ TEMPORARILY REMOVE MIDDLEWARE FOR TESTING
-    // public function __construct()
-    // {
-    //     $this->middleware('auth:sanctum');
-    // }
-
     // Get all users (except admin)
     public function index()
     {
@@ -53,22 +46,53 @@ class UserController extends Controller
         }
     }
 
-    // Create new user - ✅ FIXED VERSION
+    // Create new user - ✅ UPDATED VERSION WITH MANUAL VALIDATION
     public function store(Request $request)
     {
         try {
             \Log::info('User creation request received', $request->all());
 
+            // Custom password validation closure
+            $passwordValidator = function ($attribute, $value, $fail) {
+                // Debug log
+                \Log::info('🔍 Validating password:', ['password' => $value, 'length' => strlen($value)]);
+                
+                // Check length
+                if (strlen($value) < 8) {
+                    $fail('Password must be at least 8 characters.');
+                    return;
+                }
+                
+                // Check for at least one uppercase letter
+                if (!preg_match('/[A-Z]/', $value)) {
+                    $fail('Password must contain at least 1 uppercase letter (A-Z).');
+                    return;
+                }
+                
+                // Check for at least one number
+                if (!preg_match('/\d/', $value)) {
+                    $fail('Password must contain at least 1 number (0-9).');
+                    return;
+                }
+                
+                // Check for at least one special character (including dot)
+                if (!preg_match('/[@$!%*?&.]/', $value)) {
+                    $fail('Password must contain at least 1 special character (@ $ ! % * ? & .).');
+                    return;
+                }
+                
+                \Log::info('✅ Password validation passed');
+            };
+
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users',
                 'username' => 'required|string|unique:users',
-                'password' => ['required', 'min:8', 'regex:/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/'],
+                'password' => ['required', 'min:8', $passwordValidator],
                 'role' => 'required|in:user,team_leader,admin',
                 'department' => 'required|string|in:IT & Innovation,Business,Accounts',
                 'status' => 'required|in:active,inactive'
             ], [
-                'password.regex' => 'Password must contain at least 1 uppercase letter, 1 number, and 1 special character.',
                 'email.unique' => 'This email is already registered.',
                 'username.unique' => 'This username is already taken.'
             ]);
@@ -92,7 +116,11 @@ class UserController extends Controller
                 'status' => $request->status
             ]);
 
-            \Log::info('User created successfully', ['user_id' => $user->id, 'email' => $user->email]);
+            \Log::info('User created successfully', [
+                'user_id' => $user->id, 
+                'email' => $user->email,
+                'password_provided' => !empty($request->password)
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -117,7 +145,7 @@ class UserController extends Controller
         }
     }
 
-    // Update user - ✅ FIXED VERSION
+    // Update user - ✅ UPDATED VERSION WITH MANUAL VALIDATION
     public function update(Request $request, $id)
     {
         try {
@@ -133,16 +161,51 @@ class UserController extends Controller
                 ], 404);
             }
 
+            // Custom password validation closure for update
+            $passwordValidator = function ($attribute, $value, $fail) {
+                // Skip validation if password is empty (for update)
+                if (empty($value)) {
+                    return;
+                }
+                
+                \Log::info('🔍 Validating update password:', ['password_length' => strlen($value)]);
+                
+                // Check length
+                if (strlen($value) < 8) {
+                    $fail('Password must be at least 8 characters.');
+                    return;
+                }
+                
+                // Check for at least one uppercase letter
+                if (!preg_match('/[A-Z]/', $value)) {
+                    $fail('Password must contain at least 1 uppercase letter (A-Z).');
+                    return;
+                }
+                
+                // Check for at least one number
+                if (!preg_match('/\d/', $value)) {
+                    $fail('Password must contain at least 1 number (0-9).');
+                    return;
+                }
+                
+                // Check for at least one special character (including dot)
+                if (!preg_match('/[@$!%*?&.]/', $value)) {
+                    $fail('Password must contain at least 1 special character (@ $ ! % * ? & .).');
+                    return;
+                }
+                
+                \Log::info('✅ Update password validation passed');
+            };
+
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email,' . $id,
                 'username' => 'required|string|unique:users,username,' . $id,
-                'password' => ['nullable', 'min:8', 'regex:/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/'],
+                'password' => ['nullable', 'min:8', $passwordValidator],
                 'role' => 'required|in:user,team_leader,admin',
                 'department' => 'required|string|in:IT & Innovation,Business,Accounts',
                 'status' => 'required|in:active,inactive'
             ], [
-                'password.regex' => 'Password must contain at least 1 uppercase letter, 1 number, and 1 special character.',
                 'email.unique' => 'This email is already registered.',
                 'username.unique' => 'This username is already taken.'
             ]);
