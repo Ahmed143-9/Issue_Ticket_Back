@@ -93,34 +93,53 @@ class ProblemController extends Controller
         Log::info('=== AUTO ASSIGNMENT DEBUG START ===');
         Log::info('Problem Department: ' . $problem->department);
 
-        // 1. Check ALL active First Face assignments
-        $allActiveAssignments = FirstFaceAssignment::where('is_active', true)->get();
-        Log::info('All Active Assignments:', $allActiveAssignments->toArray());
-
-        // 2. First check for First Face Assignment (Global)
-        $firstFaceAssignment = FirstFaceAssignment::where('is_active', true)
+        // 1. First check for First Face Assignment for ALL DEPARTMENTS
+        $globalFirstFace = FirstFaceAssignment::where('is_active', true)
+            ->where('department', 'all')
             ->with('user')
             ->first();
 
-        Log::info('Selected First Face Assignment:', [
-            'found' => !is_null($firstFaceAssignment),
-            'user_id' => $firstFaceAssignment->user_id ?? null,
-            'user_name' => $firstFaceAssignment->user->name ?? null,
-            'department' => $firstFaceAssignment->department ?? null
-        ]);
-
-        if ($firstFaceAssignment && $firstFaceAssignment->user) {
+        if ($globalFirstFace && $globalFirstFace->user) {
+            Log::info('Found Global First Face Assignment:', [
+                'user_id' => $globalFirstFace->user_id,
+                'user_name' => $globalFirstFace->user->name,
+                'department' => 'all'
+            ]);
+            
             $problem->update([
-                'assigned_to' => $firstFaceAssignment->user_id,
+                'assigned_to' => $globalFirstFace->user_id,
                 'assignment_type' => 'first_face_auto',
                 'status' => 'assigned'
             ]);
             
-            Log::info('=== AUTO ASSIGNMENT COMPLETE ===');
+            Log::info('=== GLOBAL AUTO ASSIGNMENT COMPLETE ===');
             return;
         }
 
-        Log::info('=== NO FIRST FACE FOUND ===');
+        // 2. If no global assignment, check for department-specific First Face
+        $departmentFirstFace = FirstFaceAssignment::where('is_active', true)
+            ->where('department', $problem->department)
+            ->with('user')
+            ->first();
+
+        if ($departmentFirstFace && $departmentFirstFace->user) {
+            Log::info('Found Department First Face Assignment:', [
+                'user_id' => $departmentFirstFace->user_id,
+                'user_name' => $departmentFirstFace->user->name,
+                'department' => $departmentFirstFace->department
+            ]);
+            
+            $problem->update([
+                'assigned_to' => $departmentFirstFace->user_id,
+                'assignment_type' => 'first_face_auto',
+                'status' => 'assigned'
+            ]);
+            
+            Log::info('=== DEPARTMENT AUTO ASSIGNMENT COMPLETE ===');
+            return;
+        }
+
+        Log::info('=== NO FIRST FACE FOUND FOR THIS PROBLEM ===');
         
     } catch (\Exception $e) {
         Log::error('Auto assignment failed: ' . $e->getMessage());

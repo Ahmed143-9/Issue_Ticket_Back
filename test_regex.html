@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Password Validation Test</title>
+</head>
+<body>
+    <h1>Password Validation Test</h1>
+    <script>
+        const password = 'Ashraf.Haque@@123';
+        
+        console.log('Testing password:', password);
+        console.log('Length >= 8:', password.length >= 8);
+        console.log('Has uppercase:', /[A-Z]/.test(password));
+        console.log('Has number:', /\d/.test(password));
+        console.log('Has special char:', /[@$!%*?&.]/.test(password));
+        
+        // Detailed checks
+        console.log('Uppercase matches:', password.match(/[A-Z]/g));
+        console.log('Number matches:', password.match(/\d/g));
+        console.log('Special char matches:', password.match(/[@$!%*?&.]/g));
+        
+        // Validate function
+        function validatePassword(pwd) {
+            console.log('Validating password:', pwd);
+            
+            if (!pwd || pwd.length < 8) {
+                console.log('❌ Password too short or empty');
+                return false;
+            }
+            
+            if (!/[A-Z]/.test(pwd)) {
+                console.log('❌ No uppercase letter found');
+                return false;
+            }
+            
+            if (!/\d/.test(pwd)) {
+                console.log('❌ No number found');
+                return false;
+            }
+            
+            if (!/[@$!%*?&.]/.test(pwd)) {
+                console.log('❌ No special character found');
+                return false;
+            }
+            
+            console.log('✅ Password validation passed');
+            return true;
+        }
+        
+        console.log('Function result:', validatePassword(password));
+    </script>
+</body>
+</html>

@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 
 class FirstFaceAssignmentController extends Controller
 {
-    // ✅ NO MIDDLEWARE - Authentication ছাড়াই কাজ করবে
+    // ✅ NO MIDDLEWARE - Authentication ছাড়াই কাজ করবে
     // public function __construct()
     // {
     //     $this->middleware('auth:sanctum');
@@ -54,7 +54,7 @@ class FirstFaceAssignmentController extends Controller
 
             $validated = $request->validate([
                 'user_id' => 'required|exists:users,id',
-                'department' => 'required|string',
+                'department' => 'required|string|in:all,Enterprise Business Solutions,Board Management,Support Stuff,Administration and Human Resources,Finance and Accounts,Business Dev and Operations,Implementation and Support,Technical and Networking Department',
                 'type' => 'required|in:all,specific'
             ]);
 
@@ -130,7 +130,7 @@ class FirstFaceAssignmentController extends Controller
 
             $validated = $request->validate([
                 'user_id' => 'sometimes|exists:users,id',
-                'department' => 'sometimes|string',
+                'department' => 'sometimes|string|in:all,Enterprise Business Solutions,Board Management,Support Stuff,Administration and Human Resources,Finance and Accounts,Business Dev and Operations,Implementation and Support,Technical and Networking Department',
                 'type' => 'sometimes|in:all,specific',
                 'is_active' => 'sometimes|boolean'
             ]);

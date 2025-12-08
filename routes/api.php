@@ -6,6 +6,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProblemController;
 use App\Http\Controllers\FirstFaceAssignmentController;
 use App\Http\Controllers\PreAssignmentController;
+use App\Http\Controllers\DashboardController;
 
 // Public routes
 Route::post('/login', [AuthController::class, 'login']);
@@ -18,7 +19,7 @@ Route::post('/login', [AuthController::class, 'login']);
 //     ], 401);
 // })->name('login');
 
-// ✅ TEMPORARY DEBUG ROUTES - Authentication ছাড়া
+// ✅ TEMPORARY DEBUG ROUTES - Authentication ছাড়া
 Route::get('/test', function () {
     return response()->json([
         'success' => true,
@@ -93,6 +94,9 @@ Route::get('/test-problems', function () {
 });
 
 // ✅ TEMPORARILY REMOVE AUTH MIDDLEWARE FOR ALL ROUTES FOR TESTING
+
+// Department Routes
+Route::get('/departments', [DashboardController::class, 'getDepartments']);
 
 // User Management Routes
 Route::prefix('users')->group(function () {

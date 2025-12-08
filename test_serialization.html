@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JSON Serialization Test</title>
+</head>
+<body>
+    <h1>JSON Serialization Test</h1>
+    <script>
+        // Test data similar to what the frontend sends
+        const testData = {
+            name: "Test User",
+            username: "test@example.com",
+            email: "test@example.com",
+            password: "Admin@123.", // Password with dot
+            role: "user",
+            department: "Board Management",
+            status: "active"
+        };
+        
+        console.log("Original data:", testData);
+        console.log("Department value:", testData.department);
+        console.log("Department type:", typeof testData.department);
+        console.log("Department length:", testData.department.length);
+        
+        // Serialize to JSON
+        const jsonString = JSON.stringify(testData);
+        console.log("Serialized JSON:", jsonString);
+        
+        // Parse back
+        const parsedData = JSON.parse(jsonString);
+        console.log("Parsed data:", parsedData);
+        console.log("Parsed department:", parsedData.department);
+        console.log("Parsed department type:", typeof parsedData.department);
+        console.log("Parsed department length:", parsedData.department.length);
+        
+        // Check if they match
+        console.log("Department matches:", testData.department === parsedData.department);
+        
+        // Character codes
+        console.log("Original department char codes:", 
+            testData.department.split('').map((char, index) => ({ index, char, code: char.charCodeAt(0) })));
+        console.log("Parsed department char codes:", 
+            parsedData.department.split('').map((char, index) => ({ index, char, code: char.charCodeAt(0) })));
+    </script>
+</body>
+</html>
