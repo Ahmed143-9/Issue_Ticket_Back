@@ -65,8 +65,16 @@ class FirstFaceAssignmentController extends Controller
             if (!$user) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'User not found'
+                    'error' => 'User not found. Please select a valid user from the list.'
                 ], 404);
+            }
+
+            // Check if user is admin (admins shouldn't be assigned)
+            if ($user->email === 'admin@example.com') {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Admin user cannot be assigned. Please select another user.'
+                ], 422);
             }
 
             // Deactivate existing assignments

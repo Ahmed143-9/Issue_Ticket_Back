@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>API Test Page</h1>
+    <button onclick="testUsersAPI()">Test Users API</button>
+    <div id="results"></div>
+
+    <script>
+        async function testUsersAPI() {
+            const resultsDiv = document.getElementById('results');
+            try {
+                resultsDiv.innerHTML = '<p>Testing API...</p>';
+                
+                // Test our API endpoint
+                const response = await axios.get('/api/users');
+                
+                if (response.data.success) {
+                    resultsDiv.innerHTML = `
+                        <h2>Success!</h2>
+                        <p>Found ${response.data.users.length} users</p>
+                        <pre>${JSON.stringify(response.data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `<p>Error: ${response.data.error}</p>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <h2>Error occurred:</h2>
+                    <pre>${JSON.stringify(error.response || error.message, null, 2)}</pre>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -475,4 +475,25 @@ class UserController extends Controller
             ], 500);
         }
     }
+
+    // Get all assignable users (both active and inactive except admin)
+    public function getAssignableUsers()
+    {
+        try {
+            $assignableUsers = User::where('email', '!=', 'admin@example.com')
+                        ->get(['id', 'name', 'username', 'email', 'role', 'department', 'status']);
+
+            return response()->json([
+                'success' => true,
+                'assignableUsers' => $assignableUsers,
+                'count' => $assignableUsers->count()
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Assignable users loading error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to load assignable users: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

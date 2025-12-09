@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CORS Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>CORS Test Page</h1>
+    <button onclick="testDirectFetch()">Test Direct Fetch to http://127.0.0.1:8000/api/users</button>
+    <button onclick="testAxios()">Test Axios Request</button>
+    <div id="results"></div>
+
+    <script>
+        // Test direct fetch (this might fail due to CORS)
+        async function testDirectFetch() {
+            const resultsDiv = document.getElementById('results');
+            try {
+                resultsDiv.innerHTML = '<p>Testing direct fetch...</p>';
+                
+                const response = await fetch('http://127.0.0.1:8000/api/users');
+                const data = await response.json();
+                
+                resultsDiv.innerHTML = `
+                    <h2>Direct Fetch Result:</h2>
+                    <p>Status: ${response.status}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <h2>Direct Fetch Error:</h2>
+                    <pre>${JSON.stringify(error, null, 2)}</pre>
+                `;
+            }
+        }
+        
+        // Test axios request (should work with proper CORS)
+        async function testAxios() {
+            const resultsDiv = document.getElementById('results');
+            try {
+                resultsDiv.innerHTML = '<p>Testing axios request...</p>';
+                
+                const response = await axios.get('http://127.0.0.1:8000/api/users');
+                
+                resultsDiv.innerHTML = `
+                    <h2>Axios Request Result:</h2>
+                    <p>Status: ${response.status}</p>
+                    <pre>${JSON.stringify(response.data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <h2>Axios Request Error:</h2>
+                    <pre>${JSON.stringify(error.response || error.message, null, 2)}</pre>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

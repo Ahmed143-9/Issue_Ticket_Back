@@ -97,12 +97,14 @@ Route::get('/test-problems', function () {
 
 // Department Routes
 Route::get('/departments', [DashboardController::class, 'getDepartments']);
+Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
 
 // User Management Routes
 Route::prefix('users')->group(function () {
     Route::get('/', [UserController::class, 'index']);
     Route::post('/', [UserController::class, 'store']);
     Route::get('/active', [UserController::class, 'getActiveUsers']);
+    Route::get('/assignable', [UserController::class, 'getAssignableUsers']);
     Route::put('/{id}', [UserController::class, 'update']);
     Route::delete('/{id}', [UserController::class, 'destroy']);
     Route::patch('/{id}/toggle-status', [UserController::class, 'toggleStatus']);
@@ -184,16 +186,14 @@ Route::post('/test-auto-assign/{problemId}', function ($problemId) {
                 'error' => 'Problem not found'
             ], 404);
         }
-
-        // Call auto assignment logic
-        app()->make(\App\Http\Controllers\ProblemController::class)->autoAssignProblem($problem);
         
-        $problem->refresh(); // Refresh to get updated data
+        // Try to auto-assign the problem
+        $assignmentResult = \App\Models\FirstFaceAssignment::attemptAutoAssignment($problem);
         
         return response()->json([
             'success' => true,
-            'message' => 'Auto assignment completed',
-            'problem' => $problem->load('assignee')
+            'message' => 'Auto assignment attempted',
+            'result' => $assignmentResult
         ]);
     } catch (\Exception $e) {
         return response()->json([
@@ -201,4 +201,4 @@ Route::post('/test-auto-assign/{problemId}', function ($problemId) {
             'error' => $e->getMessage()
         ], 500);
     }
-}); 
+});
